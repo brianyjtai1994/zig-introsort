@@ -54,10 +54,10 @@ test "heap indices" {
     try testing.expect(heapRight(2) == 6);
 }
 
-fn swap(arr: []i32, i: usize, j: usize) void {
-    const tmp = arr[i];
-    arr[i] = arr[j];
-    arr[j] = tmp;
+fn swap(val1: *i32, val2: *i32) void {
+    const tmp = val1.*;
+    val1.* = val2.*;
+    val2.* = tmp;
 }
 
 // Assume that the binary trees rooted at
@@ -71,7 +71,7 @@ fn maxHeapify(heap: []i32, ind: usize, heap_size: usize) void {
         tx = if (lx < heap_size and heap[lx] > heap[ix]) lx else ix;
         if (rx < heap_size and heap[rx] > heap[tx]) tx = rx;
         if (tx != ix) {
-            swap(heap, ix, tx);
+            swap(&heap[ix], &heap[tx]);
             ix = tx;
             lx = heapLeft(ix);
             rx = heapRight(ix);
@@ -92,7 +92,7 @@ fn heapSort(heap: []i32) void {
     buildMaxHeap(heap, heap_size);
 
     while (ix > 0) : (ix -= 1) {
-        swap(heap, 0, ix);
+        swap(&heap[0], &heap[ix]);
         heap_size -= 1;
         maxHeapify(heap, 0, heap_size);
     }
@@ -118,7 +118,9 @@ fn insertSort(arr: []i32, lx: usize, rx: usize) void {
     while (ix <= rx) : (ix += 1) {
         val = arr[ix];
         ind = ix;
-        while (lx < ind and val < arr[ind - 1]) : (ind -= 1) arr[ind] = arr[ind - 1];
+        while (lx < ind and val < arr[ind - 1]) : (ind -= 1) {
+            arr[ind] = arr[ind - 1];
+        }
         arr[ind] = val;
     }
 }
@@ -130,6 +132,42 @@ test "insertion sort" {
     std.debug.print("  init. arr = ", .{});
     printArray(&arr);
     insertSort(&arr, 0, arr.len - 1);
+    std.debug.print("  sort. arr = ", .{});
+    printArray(&arr);
+
+    try testing.expect(std.mem.eql(i32, &arr, &ans));
+}
+
+fn partition(arr: []i32, lx: usize, rx: usize) usize {
+    var ind: usize = lx;
+    const val: i32 = arr[rx];
+
+    var ix: usize = lx;
+    while (ix < rx) : (ix += 1) {
+        if (arr[ix] < val) {
+            swap(&arr[ix], &arr[ind]);
+            ind += 1;
+        }
+    }
+    swap(&arr[rx], &arr[ind]);
+    return ind;
+}
+
+fn quickSort(arr: []i32, lx: usize, rx: usize) void {
+    if (lx >= rx) return;
+    const px: usize = partition(arr, lx, rx);
+    quickSort(arr, lx, px - 1);
+    quickSort(arr, px + 1, rx);
+    return;
+}
+
+test "quickSort" {
+    var arr = [10]i32{ 4, 1, 3, 2, 16, 9, 10, 14, 8, 7 };
+    const ans = [10]i32{ 1, 2, 3, 4, 7, 8, 9, 10, 14, 16 };
+    std.debug.print("\n", .{});
+    std.debug.print("  init. arr = ", .{});
+    printArray(&arr);
+    quickSort(&arr, 0, arr.len - 1);
     std.debug.print("  sort. arr = ", .{});
     printArray(&arr);
 
