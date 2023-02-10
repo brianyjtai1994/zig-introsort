@@ -13,13 +13,24 @@ fn printArray(x: []i32) void {
 }
 
 test "print array" {
-    var arr = [10]i32{ 4, 1, 3, 2, 16, 9, 10, 14, 8, 7 };
+    var arr = [_]i32{ 4, 1, 3, 2, 16, 9, 10, 14, 8, 7 };
     std.debug.print("\n", .{});
     std.debug.print("  arr = ", .{});
     printArray(&arr);
 
     try testing.expect(@TypeOf(arr) == [10]i32);
     try testing.expect(@TypeOf(&arr) == *[10]i32);
+
+    // comptime-time known start and end
+    // `static_view` is a pointer to an array, not a slice
+    const static_view = arr[0..];
+    try testing.expect(@TypeOf(static_view) == *[10]i32);
+    try testing.expect(static_view == &arr);
+
+    var lx: usize = 1;
+    var rx: usize = 3;
+    const dynamic_view = arr[lx..rx];
+    try testing.expect(@TypeOf(dynamic_view) == []i32);
 }
 
 fn heapParent(x: usize) usize {
@@ -27,11 +38,11 @@ fn heapParent(x: usize) usize {
 }
 
 fn heapLeft(x: usize) usize {
-    return 1 + (x <<| 1);
+    return 1 + (x << 1);
 }
 
 fn heapRight(x: usize) usize {
-    return (1 + x) <<| 1;
+    return (1 + x) << 1;
 }
 
 test "heap indices" {
@@ -89,6 +100,7 @@ fn heapSort(heap: []i32) void {
 
 test "heapSort" {
     var arr = [10]i32{ 4, 1, 3, 2, 16, 9, 10, 14, 8, 7 };
+    const ans = [10]i32{ 1, 2, 3, 4, 7, 8, 9, 10, 14, 16 };
     std.debug.print("\n", .{});
     std.debug.print("  init. arr = ", .{});
     printArray(&arr);
@@ -96,6 +108,30 @@ test "heapSort" {
     std.debug.print("  sort. arr = ", .{});
     printArray(&arr);
 
-    try testing.expect(@TypeOf(arr) == [10]i32);
-    try testing.expect(@TypeOf(&arr) == *[10]i32);
+    try testing.expect(std.mem.eql(i32, &arr, &ans));
+}
+
+fn insertSort(arr: []i32, lx: usize, rx: usize) void {
+    var ix: usize = lx + 1;
+    var ind: usize = undefined;
+    var val: i32 = undefined;
+    while (ix <= rx) : (ix += 1) {
+        val = arr[ix];
+        ind = ix;
+        while (lx < ind and val < arr[ind - 1]) : (ind -= 1) arr[ind] = arr[ind - 1];
+        arr[ind] = val;
+    }
+}
+
+test "insertion sort" {
+    var arr = [10]i32{ 4, 1, 3, 2, 16, 9, 10, 14, 8, 7 };
+    const ans = [10]i32{ 1, 2, 3, 4, 7, 8, 9, 10, 14, 16 };
+    std.debug.print("\n", .{});
+    std.debug.print("  init. arr = ", .{});
+    printArray(&arr);
+    insertSort(&arr, 0, arr.len - 1);
+    std.debug.print("  sort. arr = ", .{});
+    printArray(&arr);
+
+    try testing.expect(std.mem.eql(i32, &arr, &ans));
 }
