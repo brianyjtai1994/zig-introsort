@@ -173,3 +173,69 @@ test "quickSort" {
 
     try testing.expect(std.mem.eql(i32, &arr, &ans));
 }
+
+fn pwr2(x: usize) usize {
+    if (x == 0) return 0; // error: pwr2(x): x cannot be zero!
+    var r: usize = 0;
+    var v: usize = x;
+    if (v > 4294967295) {
+        v >>= 32;
+        r += 32;
+    }
+    if (v > 65535) {
+        v >>= 16;
+        r += 16;
+    }
+    if (v > 255) {
+        v >>= 8;
+        r += 8;
+    }
+    if (v > 15) {
+        v >>= 4;
+        r += 4;
+    }
+    if (v > 3) {
+        v >>= 2;
+        r += 2;
+    }
+    if (v > 1) {
+        v >>= 1;
+        r += 1;
+    }
+    return r;
+}
+
+test "type max. of usize" {
+    try testing.expect(pwr2(std.math.maxInt(usize)) == 63);
+}
+
+fn introSort(arr: []i32) void {
+    const max_depth: usize = pwr2(arr.len) << 1;
+    _introSort(arr, 0, arr.len - 1, max_depth);
+}
+
+fn _introSort(arr: []i32, lx: usize, rx: usize, max_depth: usize) void {
+    if (lx >= rx) return;
+    if (rx - lx + 1 < 16) {
+        insertSort(arr, lx, rx);
+    } else if (max_depth == 0) {
+        heapSort(arr[lx..rx]);
+    } else {
+        const px: usize = partition(arr, lx, rx);
+        _introSort(arr, lx, px - 1, max_depth - 1);
+        _introSort(arr, px + 1, rx, max_depth - 1);
+    }
+}
+
+test "introSort" {
+    var arr = [10]i32{ 4, 1, 3, 2, 16, 9, 10, 14, 8, 7 };
+    const ans = [10]i32{ 1, 2, 3, 4, 7, 8, 9, 10, 14, 16 };
+    std.debug.print("\n", .{});
+    std.debug.print("  init. arr = ", .{});
+    printArray(&arr);
+    introSort(&arr);
+    std.debug.print("  sort. arr = ", .{});
+    printArray(&arr);
+
+    try testing.expect(std.mem.eql(i32, &arr, &ans));
+}
